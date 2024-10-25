@@ -1,0 +1,7 @@
+matplotlib
+networkx
+numpy
+hilbertcurve
+scipy
+scikit-learn
+tqdm
