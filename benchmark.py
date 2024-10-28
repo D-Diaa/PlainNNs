@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-from math import ceil, log2
+from math import ceil, log2, floor
 
 import numpy as np
 from tqdm import tqdm
@@ -57,7 +57,7 @@ def benchmark_nn(dataset_name, dataset_url, nn_algorithm, num_queries=10, k=10, 
         # For exactly a power of 2 nodes, m = log_N is the best
         # Otherwise, m = log_N - 1 or m = log_N - 2 is the best
         # setting it as floor for now
-        # kwargs["m"] = floor(log2(len(base_vectors)))
+        kwargs["m"] = floor(log2(len(base_vectors)))
 
     nn_algorithm = nn_algorithm(**kwargs)
 
