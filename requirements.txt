@@ -1,7 +1,7 @@
-matplotlib
-networkx
-numpy
-hilbertcurve
-scipy
-scikit-learn
-tqdm
+matplotlib~=3.9.2
+numpy~=1.26.4
+scipy~=1.13.1
+scikit-learn~=1.5.1
+tqdm~=4.66.5
+numba~=0.60.0
+plotly~=5.24.1
