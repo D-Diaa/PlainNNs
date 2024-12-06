@@ -63,7 +63,7 @@ def benchmark_nn(dataset_name, dataset_url, nn_algorithm, num_queries=10, k=10, 
 
     # Initialize the nearest neighbor algorithm
     logging.info(f"Initializing {nn_algorithm.__class__.__name__}...")
-    nn_algorithm.build(base_vectors, bfs_width=log_N)  # Build the graph using base vectors
+    nn_algorithm.batch_insert(base_vectors, bfs_width=log_N)  # Build the graph using base vectors
 
     def evaluate(key_prefix=""):
         # Perform benchmark on the queries
