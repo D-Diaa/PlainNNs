@@ -49,7 +49,6 @@ class ClusteredHNSW(HNSW):
         self.cumulative_sizes = None
         self.cluster_config = cluster_config or ClusterConfig()
         self.clusters: Dict[int, ClusterInfo] = {}
-        self.cluster_sizes: Dict[int, int] = {}
         self._original_vectors: Optional[np.ndarray] = None
         self.max_candidates = 0
 
@@ -116,13 +115,17 @@ class ClusteredHNSW(HNSW):
                 vectors=cluster_vectors,
                 indices=cluster_indices,
             )
-            self.cluster_sizes[node] = len(cluster_vectors)
 
-    def compute_recommended_efs(self):
+    def prepare_recommended_ef(self):
+        cluster_sizes = {cluster_id: self.clusters[cluster_id].size for cluster_id in self.clusters}
         # sort clusters by size
-        sorted_clusters = sorted(self.cluster_sizes, key=self.cluster_sizes.get)
+        sorted_clusters = sorted(cluster_sizes, key=cluster_sizes.get)
         # compute cumulative sum of cluster sizes
-        self.cumulative_sizes = np.cumsum([self.cluster_sizes[cluster_id] for cluster_id in sorted_clusters])
+        self.cumulative_sizes = np.cumsum([cluster_sizes[cluster_id] for cluster_id in sorted_clusters])
+
+    def get_recommended_ef(self, k: int):
+        recommended_ef = np.searchsorted(self.cumulative_sizes, k, side='left')
+        return recommended_ef
 
     def batch_insert(self, vectors: np.ndarray):
         start_time = time.time()
@@ -143,18 +146,16 @@ class ClusteredHNSW(HNSW):
                 new_indices = self.clusters[cluster_index].indices
                 self.batch_insert_cluster_method(new_vectors, new_indices, verbose=False)
                 self.clusters.pop(cluster_index)
-                self.cluster_sizes.pop(cluster_index)
         else:
             raise ValueError(
                 f"Invalid insert method: {self.cluster_config.insert_method} | max_cluster_size: {self.cluster_config.maximum_cluster_size}")
 
         self.construction_time += time.time() - start_time
-        self.compute_recommended_efs()
+        self.prepare_recommended_ef()
 
     def insert(self, vector: np.ndarray):
         nearest_centroid = super().search(vector, 1, ef=self.config.ef_construction).indices[0]
         self.clusters[nearest_centroid].vectors = np.vstack((self.clusters[nearest_centroid].vectors, vector))
-        self.cluster_sizes[nearest_centroid] += 1
         new_index = len(self._original_vectors)
         self.clusters[nearest_centroid].indices = np.append(self.clusters[nearest_centroid].indices, new_index)
         self._original_vectors = np.vstack((self._original_vectors, vector))
@@ -173,7 +174,6 @@ class ClusteredHNSW(HNSW):
             cluster_indices = new_indices[mask]
             self.clusters[centroid].vectors = np.vstack((self.clusters[centroid].vectors, cluster_vectors))
             self.clusters[centroid].indices = np.append(self.clusters[centroid].indices, cluster_indices)
-            self.cluster_sizes[centroid] += len(cluster_vectors)
         return unique_centroids
 
     def search(self, query: np.ndarray, k: int, ef_search: int) -> SearchResult:
@@ -181,7 +181,7 @@ class ClusteredHNSW(HNSW):
         Search for k nearest neighbors of query vector
         """
         # get the ef smallest clusters
-        recommended_ef = np.searchsorted(self.cumulative_sizes, k, side='left')
+        recommended_ef = self.get_recommended_ef(k)
 
         if recommended_ef > ef_search:
             logging.warning(f"Recommended ef: {recommended_ef} > ef_search: {ef_search}")
@@ -193,7 +193,7 @@ class ClusteredHNSW(HNSW):
         centroid_results = super().search(query, ef_search, ef_search)
 
         # Check if we have enough clusters to search
-        actual_case_size = sum(self.cluster_sizes[cluster_id] for cluster_id in centroid_results.indices)
+        actual_case_size = sum(self.clusters[cluster_id].size for cluster_id in centroid_results.indices)
         if actual_case_size < k:
             raise ValueError(f"Search failed: {actual_case_size} < {k}")
 
