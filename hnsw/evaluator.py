@@ -404,40 +404,47 @@ def main():
     datasets: List[str] = ['siftsmall', 'sift']
     alg_confs: Dict[str, List[dict]] = {
         "HNSW": [
-            {"config": HNSWConfig.create(48)}
+            {"config": HNSWConfig.create(50)}
         ],
         "ClusteredHNSW": [
-            # {"hnsw_config": HNSWConfig.create(48),
-            #  "cluster_config": ClusterConfig(average_cluster_size=1000, insert_method="ClusterThenInsert")},
-            # {"hnsw_config": HNSWConfig.create(48),
-            #  "cluster_config": ClusterConfig(average_cluster_size=500, insert_method="ClusterThenInsert")},
-            {"hnsw_config": HNSWConfig.create(48),
+            {"hnsw_config": HNSWConfig.create(50),
+             "cluster_config": ClusterConfig(average_cluster_size=1000, insert_method="ClusterThenInsert")},
+            {"hnsw_config": HNSWConfig.create(50),
+             "cluster_config": ClusterConfig(average_cluster_size=500, insert_method="ClusterThenInsert")},
+            {"hnsw_config": HNSWConfig.create(50),
              "cluster_config": ClusterConfig(average_cluster_size=100, insert_method="ClusterThenInsert")},
-            # {"hnsw_config": HNSWConfig.create(48),
-            #  "cluster_config": ClusterConfig(average_cluster_size=20, insert_method="ClusterThenInsert")},
+            {"hnsw_config": HNSWConfig.create(50),
+             "cluster_config": ClusterConfig(average_cluster_size=50, insert_method="ClusterThenInsert")},
+            {"hnsw_config": HNSWConfig.create(50),
+             "cluster_config": ClusterConfig(average_cluster_size=20, insert_method="ClusterThenInsert")},
         ]
     }
     extra_tasks_batched = [
-        # {"hnsw_config": HNSWConfig.create(48),
-        #  "cluster_config": ClusterConfig(average_cluster_size=1000, insert_method="InsertBlindly")},
-        # {"hnsw_config": HNSWConfig.create(48),
-        #  "cluster_config": ClusterConfig(average_cluster_size=500, insert_method="InsertBlindly")},
-        {"hnsw_config": HNSWConfig.create(48),
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=1000, insert_method="InsertBlindly")},
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=500, insert_method="InsertBlindly")},
+        {"hnsw_config": HNSWConfig.create(50),
          "cluster_config": ClusterConfig(average_cluster_size=100, insert_method="InsertBlindly")},
-        # {"hnsw_config": HNSWConfig.create(48),
-        #  "cluster_config": ClusterConfig(average_cluster_size=20, insert_method="InsertBlindly")},
-        # {"hnsw_config": HNSWConfig.create(48),
-        #  "cluster_config": ClusterConfig(average_cluster_size=1000, maximum_cluster_size=2000,
-        #                                  insert_method="InsertWithMitosis")},
-        # {"hnsw_config": HNSWConfig.create(48),
-        #  "cluster_config": ClusterConfig(average_cluster_size=500, maximum_cluster_size=1000,
-        #                                  insert_method="InsertWithMitosis")},
-        {"hnsw_config": HNSWConfig.create(48),
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=50, insert_method="InsertBlindly")},
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=20, insert_method="InsertBlindly")},
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=1000, maximum_cluster_size=2000,
+                                         insert_method="InsertWithMitosis")},
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=500, maximum_cluster_size=1000,
+                                         insert_method="InsertWithMitosis")},
+        {"hnsw_config": HNSWConfig.create(50),
          "cluster_config": ClusterConfig(average_cluster_size=100, maximum_cluster_size=200,
                                          insert_method="InsertWithMitosis")},
-        # {"hnsw_config": HNSWConfig.create(48),
-        #  "cluster_config": ClusterConfig(average_cluster_size=20, maximum_cluster_size=40,
-        #                                  insert_method="InsertWithMitosis")},
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=50, maximum_cluster_size=100,
+                                         insert_method="InsertWithMitosis")},
+        {"hnsw_config": HNSWConfig.create(50),
+         "cluster_config": ClusterConfig(average_cluster_size=20, maximum_cluster_size=40,
+                                         insert_method="InsertWithMitosis")},
     ]
 
     k: int = 10
@@ -487,7 +494,8 @@ def main():
                         file_locks[dataset],
                     ))
     all_tasks = sorted(all_tasks, key=lambda x: (x[0].__name__, len(loaded_datasets[x[1]]), x[2]))
-    with Pool(processes=1) as pool:
+    n_processes = min(64, len(all_tasks), os.cpu_count())
+    with Pool(processes=n_processes) as pool:
         pool.starmap(execute_task_wrapper, all_tasks)
 
 
