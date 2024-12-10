@@ -198,26 +198,22 @@ class ClusteredHNSW(HNSW):
             raise ValueError(f"Search failed: {actual_case_size} < {k}")
 
         # Get all vectors from the ef nearest clusters
-        candidates = []
+        candidate_distances = []
         candidate_indices = []
 
         for centroid_id in centroid_results.indices:
             if centroid_id not in self.clusters:
                 raise ValueError(f"Cluster {centroid_id} not found in index")
             cluster = self.clusters[centroid_id]
-            candidates.append(cluster.vectors)
+            cluster_size = cluster.size
+            cluster_distances = batch_distances(query, np.arange(cluster_size), cluster.vectors)
+            candidate_distances.extend(cluster_distances)
             candidate_indices.extend(cluster.indices)
-
-        # Concatenate all candidates
-        all_candidates = np.vstack(candidates)
-
-        # Compute distances to all candidates
-        distances = batch_distances(query, np.arange(len(all_candidates)), all_candidates)
-        self.distance_computations += len(all_candidates)
-        self.max_candidates = max(self.max_candidates, len(all_candidates))
+            self.distance_computations += cluster_size
+            self.max_candidates = max(self.max_candidates, cluster_size)
         # Get top k results
-        top_k_idx = np.argpartition(distances, min(k, len(distances) - 1))[:k]
-        top_k_distances = distances[top_k_idx]
+        top_k_idx = np.argpartition(candidate_distances, min(k, len(candidate_distances) - 1))[:k]
+        top_k_distances = candidate_distances[top_k_idx]
         top_k_indices = [candidate_indices[i] for i in top_k_idx]
 
         # Sort by distance
