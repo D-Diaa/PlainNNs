@@ -80,6 +80,15 @@ class DatasetLoader:
 
 
 def get_base_data(local_name):
+    """
+    Retrieve base data vectors from a dataset.
+
+    Args:
+        local_name (str): Name of the dataset.
+
+    Returns:
+        np.ndarray: Base data vectors.
+    """
     datasets_path = "datasets"
     base_file = os.path.join(datasets_path, local_name, local_name + '_base.fvecs')
     base_vectors = np.array(list(read_fvecs(base_file)))  # Reading all vectors from file
@@ -87,6 +96,16 @@ def get_base_data(local_name):
 
 
 def download_and_extract(url, extract_path):
+    """
+    Download and extract a dataset archive if not already done.
+
+    Args:
+        url (str): URL to download the dataset.
+        extract_path (str): Path to extract the dataset.
+
+    Returns:
+        str: Name of the extracted dataset folder.
+    """
     local_filename = url.split('/')[-1]
     local_filepath = os.path.join(extract_path, local_filename)
     local_name = local_filename.split('.tar.gz')[0]
@@ -104,6 +123,15 @@ def download_and_extract(url, extract_path):
 
 # Helper function to read .fvecs file format
 def read_fvecs(filepath):
+    """
+    Generator function to read vectors from an .fvecs file.
+
+    Args:
+        filepath (str): Path to the .fvecs file.
+
+    Yields:
+        np.ndarray: Vector read from the file.
+    """
     with open(filepath, 'rb') as f:
         while True:
             bytes_ = f.read(4)
@@ -116,6 +144,15 @@ def read_fvecs(filepath):
 
 # Helper function to read .ivecs file format
 def read_ivecs(filepath):
+    """
+    Generator function to read vectors from an .ivecs file.
+
+    Args:
+        filepath (str): Path to the .ivecs file.
+
+    Yields:
+        np.ndarray: Vector read from the file.
+    """
     with open(filepath, 'rb') as f:
         while True:
             bytes_ = f.read(4)
@@ -128,6 +165,17 @@ def read_ivecs(filepath):
 
 @njit(fastmath=True)
 def batch_distances(query_vec, indices, all_vectors):
+    """
+    Compute the squared Euclidean distances between a query vector and a batch of vectors.
+
+    Args:
+        query_vec (np.ndarray): Query vector.
+        indices (np.ndarray): Indices of the vectors to compare against.
+        all_vectors (np.ndarray): Array containing all vectors.
+
+    Returns:
+        np.ndarray: Array of distances.
+    """
     n = len(indices)
     distances = np.empty(n, dtype=np.float32)
 

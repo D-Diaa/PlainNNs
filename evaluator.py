@@ -2,7 +2,6 @@ import copy
 import json
 import logging
 import os
-from dataclasses import dataclass, asdict
 from multiprocessing import Manager, Pool
 from pathlib import Path
 from typing import Dict, Tuple, Optional, List, Any
@@ -10,41 +9,12 @@ from typing import Dict, Tuple, Optional, List, Any
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
-from clustered import ClusteredHNSW, ClusterConfig
-from index import HNSW, HNSWConfig
+from clustered_hnsw import ClusteredHNSW, ClusterConfig
+from classes import EvaluationMetrics
+from hnsw import HNSW, HNSWConfig
 from utils import DATASET_CONFIGS, DatasetLoader
 
 logging.basicConfig(level=logging.INFO)
-
-
-@dataclass
-class EvaluationMetrics:
-    """
-    Dataclass to store evaluation metrics for HNSW indices.
-    """
-    name: str
-    recall: float
-    precision: float
-    f1_score: float
-    average_query_time: float
-    median_query_time: float
-    query_time_95th_percentile: float
-    queries_per_second: float
-    distance_computations_per_query: int
-    distance_ratio: float
-    memory_usage_bytes: int
-    level_distribution: Dict[int, int]
-    average_out_degree: float
-    construction_time: float
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the EvaluationMetrics instance to a dictionary."""
-        return asdict(self)
-
-    @staticmethod
-    def from_dict(data: Dict[str, Any]) -> 'EvaluationMetrics':
-        """Create an EvaluationMetrics instance from a dictionary."""
-        return EvaluationMetrics(**data)
 
 
 def _log_metrics(metrics: EvaluationMetrics):
