@@ -78,7 +78,7 @@ Parameters:
 Generate performance plots:
 
 ```bash
-python plot.py --results_dir results
+python plot.py --results_dirs results
 ```
 
 ## Configuration
