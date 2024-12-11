@@ -1,11 +1,21 @@
 import json
 import os
+import argparse
 
 import numpy as np
 import plotly.graph_objects as go
 
 
 def sym(name):
+    """
+    Determines the symbol type based on the configuration name.
+
+    Args:
+        name (str): The name of the configuration.
+
+    Returns:
+        str: The corresponding symbol type.
+    """
     if "C=20" in name:
         return "x"
     elif "C=1000" in name:
@@ -19,7 +29,15 @@ def sym(name):
 
 
 def get_method_info(name):
-    # Return (color, legend_group, display_name)
+    """
+    Determines the method information (color, legend group, display name) based on the algorithm name.
+
+    Args:
+        name (str): The name of the algorithm.
+
+    Returns:
+        tuple: A tuple containing the color, legend group, and display name.
+    """
     if 'HNSW' in name and "ClusteredHNSW" not in name:
         return 'blue', 'Base HNSW', 'HNSW'
     elif 'ClusteredHNSW' in name and 'ClusterThenInsert' in name:
@@ -34,7 +52,6 @@ def get_method_info(name):
     return 'orange', 'Other', 'Other'
 
 
-results_dir = "results_all"
 labels = {
     "memory_usage_bytes": "Memory Usage (Bytes)",
     "distance_computations_per_query": "Distance Computations",
@@ -85,11 +102,17 @@ twod_dicts = [
 ]
 
 
-def create_3d_plot(data, dataset):
-    # Select the metrics to plot
+def create_3d_plot(data, dataset, results_dir="results"):
+    """
+    Creates 3D scatter plots for the given data and saves them as HTML files.
+
+    Args:
+        data (dict): The dataset results.
+        dataset (str): The dataset name.
+        results_dir (str): The directory to save the results.
+    """
     for metrics in threed_dicts:
         fig = go.Figure()
-        # Track min/max values for x and y to set plane dimensions
         min_x, max_x = float('inf'), float('-inf')
         min_y, max_y = float('inf'), float('-inf')
 
@@ -103,7 +126,6 @@ def create_3d_plot(data, dataset):
                 y_vals = [result[metrics["y"]] for result in results]
                 z_vals = [result[metrics["z"]] for result in results]
 
-                # Update min/max values
                 min_x = min(min_x, min(x_vals))
                 max_x = max(max_x, max(x_vals))
                 min_y = min(min_y, min(y_vals))
@@ -125,12 +147,10 @@ def create_3d_plot(data, dataset):
                     name=conf
                 ))
 
-        # Add recall=0.95 plane
-        # Create a grid of points
-        plane_x = np.linspace(min_x - 0.5, max_x + 0.5, 10)
-        plane_y = np.linspace(min_y - 0.5, max_y + 0.5, 10)
+        plane_x = np.linspace(min_x - 0.1, max_x + 0.1, 10)
+        plane_y = np.linspace(min_y - 0.1, max_y + 0.1, 10)
         X, Y = np.meshgrid(plane_x, plane_y)
-        Z = np.full_like(X, 0.95)  # Create plane at z=0.95
+        Z = np.full_like(X, 0.95)
 
         # Add the plane as a surface
         fig.add_trace(go.Surface(
@@ -155,7 +175,15 @@ def create_3d_plot(data, dataset):
         fig.write_html(f"{results_dir}/{dataset}/{metrics['x']}_vs_{metrics['y']}_vs_{metrics['z']}.html")
 
 
-def create_2d_plot(data, dataset):
+def create_2d_plot(data, dataset, results_dir="results"):
+    """
+    Creates 2D scatter plots for the given data and saves them as PNG and HTML files.
+
+    Args:
+        data (dict): The dataset results.
+        dataset (str): The dataset name.
+        results_dir (str): The directory to save the results.
+    """
     for metrics in twod_dicts:
         plot_data = {}
         filter_for_recall = metrics["y"] != "recall"
@@ -173,10 +201,8 @@ def create_2d_plot(data, dataset):
                 y_values = [result[metrics["y"]] for result in results]
                 plot_data[f"{algorithm}-{conf}"] = (x_values, y_values)
 
-        # Create the plot
         fig = go.Figure()
 
-        # Add traces for each algorithm
         for name, (x_values, y_values) in plot_data.items():
             color, legend_group, display_name = get_method_info(name)
             marker = sym(name)
@@ -200,9 +226,9 @@ def create_2d_plot(data, dataset):
         # Update layout
         fig.update_layout(
             title=f"{labels[metrics['y']]} vs {labels[metrics['x']]} for {dataset}",
-            xaxis_title=labels[metrics['x']],
-            yaxis_title=labels[metrics['y']],
-            template="plotly_white",  # Includes grid by default
+            xaxis_title=labels[metrics["x"]],
+            yaxis_title=labels[metrics["y"]],
+            template="plotly_white",
             width=1200,
             height=800,
         )
@@ -213,14 +239,24 @@ def create_2d_plot(data, dataset):
 
 
 def main():
-    for dataset in ['siftsmall', 'sift']:
-        # Load the data
+    parser = argparse.ArgumentParser(description="Generate 2D and 3D plots for dataset results.")
+    parser.add_argument(
+        "--results_dir",
+        type=str,
+        default="results",
+        help="Directory containing dataset results. Defaults to 'results'."
+    )
+
+    args = parser.parse_args()
+    results_dir = args.results_dir
+
+    for dataset in os.listdir(results_dir):
         file_path = f'{results_dir}/{dataset}/summary.json'
         with open(file_path, 'r') as file:
             data = json.load(file)
         os.makedirs(f"{results_dir}/{dataset}", exist_ok=True)
-        create_3d_plot(data, dataset)
-        create_2d_plot(data, dataset)
+        create_3d_plot(data, dataset, results_dir)
+        create_2d_plot(data, dataset, results_dir)
 
 
 if __name__ == "__main__":

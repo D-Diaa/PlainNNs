@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, asdict
 from typing import Dict, Optional, List, Any
 
@@ -234,3 +235,37 @@ class EvaluationMetrics:
             EvaluationMetrics: Configured EvaluationMetrics instance.
         """
         return EvaluationMetrics(**data)
+
+    def __str__(self):
+        """
+        Return a string representation of the EvaluationMetrics instance.
+
+        Returns:
+            str: String representation of the metrics.
+        """
+        return (f"EvaluationMetrics(name={self.name}, recall={self.recall}, precision={self.precision}, "
+                f"f1_score={self.f1_score}, avg_query_time={self.average_query_time}, "
+                f"median_query_time={self.median_query_time}, queries_per_second={self.queries_per_second}, "
+                f"dist_computations_per_query={self.distance_computations_per_query}, "
+                f"dist_ratio={self.distance_ratio}, memory_usage={self.memory_usage_bytes}, "
+                f"level_dist={self.level_distribution}, avg_out_degree={self.average_out_degree}, "
+                f"construction_time={self.construction_time})")
+
+    def log(self):
+        """
+        Log evaluation metrics in a structured format.
+        """
+        logging.info("\nEvaluation Results:")
+        logging.info(f"Recall: {self.recall:.4f}")
+        logging.info(f"Precision: {self.precision:.4f}")
+        logging.info(f"F1 Score: {self.f1_score:.4f}")
+        logging.info(f"Average Query Time: {self.average_query_time * 1000:.2f}ms")
+        logging.info(f"Median Query Time: {self.median_query_time * 1000:.2f}ms")
+        logging.info(f"95th Percentile Query Time: {self.query_time_95th_percentile * 1000:.2f}ms")
+        logging.info(f"Queries per Second: {self.queries_per_second:.2f}")
+        logging.info(f"Average Distance Computations per Query: {self.distance_computations_per_query:.2f}")
+        logging.info(f"Memory Usage: {self.memory_usage_bytes / (1024 * 1024):.2f}MB")
+        logging.info(f"Construction Time: {self.construction_time:.2f}s")
+        logging.info("\nLevel Distribution:")
+        for level, count in sorted(self.level_distribution.items()):
+            logging.info(f"Level {level}: {count} nodes")

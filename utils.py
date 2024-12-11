@@ -1,8 +1,10 @@
+import json
 import logging
 import os
 import tarfile
 import urllib.request
-from typing import Tuple
+from pathlib import Path
+from typing import Tuple, Any, Dict, List
 
 import numpy as np
 from numba import njit, prange, literal_unroll
@@ -204,3 +206,103 @@ def batch_distances(query_vec, indices, all_vectors):
         distances[i] = dist
 
     return distances
+
+def is_in_json(
+        filename: str,
+        algorithm_name: str,
+        instance_str: str,
+        lock: Any
+):
+    """
+    Check if a specific algorithm and instance combination exists in the JSON file.
+
+    Args:
+        filename (str): Path to the JSON file.
+        algorithm_name (str): The name of the algorithm to check for.
+        instance_str (str): The instance string to check for.
+        lock (Any): A threading or multiprocessing lock to ensure thread safety.
+
+    Returns:
+        bool: True if the combination exists, False otherwise.
+    """
+    with lock:
+        # Read existing data or return False if file does not exist
+        if Path(filename).exists():
+            with open(filename, 'r') as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    logging.warning(f"JSON decode error in {filename}. Starting with empty data.")
+                    return False
+        else:
+            return False
+
+        # Check for the presence of the algorithm and instance
+        if algorithm_name not in data:
+            return False
+        if instance_str not in data[algorithm_name]:
+            return False
+        return True
+
+def update_json_file(
+        filename: str,
+        algorithm_name: str,
+        instance_str: str,
+        results: List[Dict[str, Any]],
+        lock: Any
+):
+    """
+    Update or insert results for a specific algorithm and instance in the JSON file.
+
+    Args:
+        filename (str): Path to the JSON file.
+        algorithm_name (str): The name of the algorithm to update.
+        instance_str (str): The instance string to update.
+        results (List[Dict[str, Any]]): The results to store in the JSON file.
+        lock (Any): A threading or multiprocessing lock to ensure thread safety.
+
+    Returns:
+        None
+    """
+    with lock:
+        # Read existing data or initialize empty structure
+        if Path(filename).exists():
+            with open(filename, 'r') as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    logging.warning(f"JSON decode error in {filename}. Starting with empty data.")
+                    data = {}
+        else:
+            data = {}
+
+        # Update data structure with new results
+        if algorithm_name not in data:
+            data[algorithm_name] = {}
+        data[algorithm_name][instance_str] = results
+
+        # Write updated data back to file
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=2)
+
+def execute_task_wrapper(task_fn, *args):
+    """
+    Execute a task function and handle any exceptions that occur.
+
+    Args:
+        task_fn (callable): The task function to execute.
+        *args: Arguments to pass to the task function.
+
+    Returns:
+        None
+
+    Raises:
+        Exception: Re-raises any exception encountered during task execution.
+    """
+    try:
+        # Attempt to execute the task function
+        task_fn(*args)
+    except Exception as e:
+        # Log any error that occurs and re-raise the exception
+        logging.error(f"Error executing task: {str(e)}")
+        raise

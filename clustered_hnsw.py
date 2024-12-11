@@ -260,7 +260,7 @@ class ClusteredHNSW(HNSW):
             self.distance_computations += cluster_size  # Update distance computations.
             self.max_candidates = max(self.max_candidates, cluster_size)  # Track maximum candidates.
         top_k_idx = np.argpartition(candidate_distances, min(k, len(candidate_distances) - 1))[:k]  # Get top-k indices.
-        top_k_distances = candidate_distances[top_k_idx]  # Extract top-k distances.
+        top_k_distances = [candidate_distances[i] for i in top_k_idx]  # Extract top-k distances.
         top_k_indices = [candidate_indices[i] for i in top_k_idx]  # Extract top-k indices.
 
         sorted_idx = np.argsort(top_k_distances)  # Sort by distance.
@@ -304,6 +304,9 @@ class ClusteredHNSW(HNSW):
 
 
 if __name__ == "__main__":
+    """
+    Main script for testing the ClusteredHNSW implementation.
+    """
     np.random.seed(42)
     dim = 2
     vectors = np.random.randn(6400, dim).astype(np.float32)
