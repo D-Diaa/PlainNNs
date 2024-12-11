@@ -2,3 +2,4 @@ numba
 scikit-learn
 tqdm
 plotly
+kaleido

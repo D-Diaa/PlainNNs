@@ -1,3 +1,4 @@
+import argparse
 import copy
 import logging
 import os
@@ -118,7 +119,7 @@ def evaluate_batched_wrapper(
     update_json_file(filename, f"after: {algorithm_name}", instance_str, results_2, file_lock)
 
 
-def main():
+def main(datasets=None, k: int = 10, ef_values=None):
     """
     Main function for managing the evaluation process.
 
@@ -128,13 +129,16 @@ def main():
     Returns:
         None
     """
+    # Set default values for datasets and ef_values
+    if ef_values is None:
+        ef_values = [10, 24, 32, 48, 64, 128]
+    if datasets is None:
+        datasets = ['siftsmall', 'sift']
     # Define the algorithms to evaluate
     algorithms: Dict[str, Any] = {
         'HNSW': HNSW,
         'ClusteredHNSW': ClusteredHNSW
     }
-    # Define the datasets to use for evaluation
-    datasets: List[str] = ['siftsmall']
 
     # Define algorithm-specific configurations
     alg_confs: Dict[str, List[dict]] = {
@@ -183,9 +187,6 @@ def main():
          "cluster_config": ClusterConfig(average_cluster_size=20, maximum_cluster_size=40,
                                          insert_method="InsertWithMitosis")},
     ]
-
-    k: int = 10  # Number of nearest neighbors to find
-    ef_values: List[int] = [10, 24, 32, 48, 64, 128]
 
     # Use Manager to share locks across processes
     manager = Manager()
@@ -254,4 +255,24 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Evaluate HNSW and ClusteredHNSW on multiple datasets.")
+    parser.add_argument(
+        "--datasets",
+        nargs="+",
+        default=None,
+        help="List of datasets to evaluate. Defaults to ['siftsmall', 'sift']. Choices: ['siftsmall', 'sift', gist]",
+    )
+    parser.add_argument(
+        "--k",
+        type=int,
+        default=10,
+        help="Number of nearest neighbors to consider. Defaults to 10.",
+    )
+    parser.add_argument(
+        "--ef_values",
+        nargs="+",
+        type=int,
+        default=None,
+        help="List of ef values to evaluate. Defaults to [10, 24, 32, 48, 64, 128].",
+    )
+    main(**vars(parser.parse_args()))
